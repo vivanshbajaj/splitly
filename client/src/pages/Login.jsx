@@ -36,12 +36,8 @@ export default function Login() {
       <div className="auth-card">
         {/* Logo */}
         <div className="auth-logo">
-          <div className="logo-icon" style={{ background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-              <circle cx="8" cy="12" r="4"/><circle cx="16" cy="12" r="4"/>
-            </svg>
-          </div>
-          Split<span>Ease</span>
+          <div className="logo-icon">💰</div>
+          Split<span>ly</span>
         </div>
 
         <h2 className="auth-title">Welcome back</h2>
