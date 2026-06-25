@@ -129,10 +129,11 @@ export default function GroupDetail() {
 
   if (loading) return <><Navbar /><div className="spinner" /></>;
 
-  const balances = calculateBalances(expenses, settlements, user.id);
+  const balances = calculateBalances(expenses, settlements, user.id || user._id);
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const currentUserId = user.id || user._id;
   const mySpend = expenses
-    .filter((e) => e.paidBy._id === user.id)
+    .filter((e) => e.paidBy._id === currentUserId)
     .reduce((sum, e) => sum + e.amount, 0);
 
   // What I owe overall vs what I'm owed
@@ -162,7 +163,7 @@ export default function GroupDetail() {
               <button className="btn btn-primary" onClick={() => setShowAddExpense(true)}>
                 + Add Expense
               </button>
-              {group.createdBy._id === user.id && (
+              {group.createdBy._id === currentUserId && (
                 <button className="btn btn-danger btn-sm" onClick={handleDeleteGroup}>
                   Delete Group
                 </button>
@@ -210,7 +211,7 @@ export default function GroupDetail() {
               ) : (
                 expenses.map((expense) => {
                   const myShare = expense.splits.find((s) => s.user._id === user.id);
-                  const iPaid = expense.paidBy._id === user.id;
+                  const iPaid = expense.paidBy._id === currentUserId;
                   return (
                     <div className="expense-item" key={expense._id}>
                       <div className="expense-cat-icon">
@@ -260,7 +261,7 @@ export default function GroupDetail() {
                     {m.name.charAt(0).toUpperCase()}
                   </div>
                   <span className="text-sm">
-                    {m.name} {m._id === user.id && <span className="text-faint">(you)</span>}
+                    {m.name} {m._id === currentUserId && <span className="text-faint">(you)</span>}
                   </span>
                   {m._id === group.createdBy._id && (
                     <span className="badge badge-primary text-xs ml-auto">admin</span>
@@ -324,7 +325,7 @@ export default function GroupDetail() {
                 {settlements.slice(0, 5).map((s) => (
                   <div key={s._id} className="flex items-center justify-between" style={{ padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
                     <span className="text-sm text-muted">
-                      {s.from._id === user.id ? 'You' : s.from.name} → {s.to._id === user.id ? 'You' : s.to.name}
+                      {s.from._id === currentUserId ? 'You' : s.from.name} → {s.to._id === currentUserId ? 'You' : s.to.name}
                     </span>
                     <span className="text-sm font-semibold text-accent">₹{s.amount}</span>
                   </div>

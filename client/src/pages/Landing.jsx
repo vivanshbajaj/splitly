@@ -1,73 +1,140 @@
 import { Link } from 'react-router-dom';
 
+/* ─── SVG Icons (matching CollaboraSphere style) ─── */
+const WalletIcon = () => (
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+    <circle cx="17" cy="14" r="1.5" fill="#2563EB" stroke="none"/>
+  </svg>
+);
+const SplitIcon = () => (
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3l-7 7-4-4-7 7"/><path d="M3 21l7-7 4 4 7-7"/>
+  </svg>
+);
+const ChartIcon = () => (
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+    <line x1="2" y1="20" x2="22" y2="20"/>
+  </svg>
+);
+const HandshakeIcon = () => (
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
+  </svg>
+);
+
 const features = [
-  { icon: '💸', title: 'Track Expenses', desc: 'Add bills, groceries, trips — anything. Never forget who paid.' },
-  { icon: '🧮', title: 'Smart Splitting', desc: 'Automatically splits expenses equally among all group members.' },
-  { icon: '📊', title: 'Clear Balances', desc: 'See exactly who owes who at a glance. No mental math needed.' },
-  { icon: '✅', title: 'Settle Up', desc: 'Record payments and clear your debts with a single tap.' },
+  { Icon: WalletIcon, title: 'Track Every Expense', desc: 'Record bills, groceries, rent, trips, and more. Every payment is organized in one place.' },
+  { Icon: SplitIcon,  title: 'Split Bills Fairly',  desc: 'Expenses are split equally among all group members — automatic, clean, and instant.' },
+  { Icon: ChartIcon,  title: 'Real-Time Balances',  desc: 'Know exactly who owes whom with a clear, live balance overview at all times.' },
+  { Icon: HandshakeIcon, title: 'Settle Instantly', desc: 'Log repayments, clear outstanding balances, and keep everyone\'s records current.' },
+];
+
+const steps = [
+  { n: '1', title: 'Create a Group',  desc: 'Add your roommates, trip buddies, or colleagues in seconds.' },
+  { n: '2', title: 'Log Expenses',    desc: 'Add any shared bill and SplitEase handles the math automatically.' },
+  { n: '3', title: 'Track Balances',  desc: 'See a live view of who owes what at any time.' },
+  { n: '4', title: 'Settle Up',       desc: 'Record payments and clear debts with a single tap.' },
 ];
 
 export default function Landing() {
   return (
     <div className="landing">
+
       {/* ─── Navbar ─────────────────────────────────────────────────── */}
-      <nav className="landing-nav">
-        <div className="navbar-logo">
-          <div className="logo-icon">💰</div>
-          Split<span>ly</span>
+      <nav className="cs-nav">
+        <div className="cs-logo">
+          <div className="cs-logo-hex" style={{ background: '#2563EB', border: '2px solid #2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', clipPath: 'none', borderRadius: '10px' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+              <circle cx="8" cy="12" r="4"/><circle cx="16" cy="12" r="4"/>
+            </svg>
+          </div>
+          SplitEase
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <Link to="/login" className="btn btn-ghost">Log in</Link>
-          <Link to="/register" className="btn btn-primary">Get Started</Link>
+        <div className="cs-nav-links">
+          <a href="#features">Features</a>
+          <a href="#how">How It Works</a>
+          <a href="#about">About</a>
         </div>
+        <Link to="/login" className="cs-signin-btn">Sign In</Link>
       </nav>
 
       {/* ─── Hero ───────────────────────────────────────────────────── */}
-      <section className="landing-hero">
-        <div className="hero-glow" />
-        <div className="hero-badge">✨ Free forever. No credit card needed.</div>
+      <section className="cs-hero">
         <h1>
-          Split bills.<br />
-          <span className="highlight">Not friendships.</span>
+          The Smarter Way to<br />
+          <span className="cs-hero-accent">SplitEase.</span>
         </h1>
         <p>
-          The simplest way to track shared expenses with roommates, friends,
-          and travel buddies. Add expenses, see who owes what, and settle up.
+          Track every payment, split bills fairly, simplify debts automatically,
+          and settle up in seconds.
         </p>
-        <div className="hero-buttons">
-          <Link to="/register" className="btn btn-primary btn-lg">Start for Free →</Link>
-          <Link to="/login" className="btn btn-outline btn-lg">Log in</Link>
+        <div className="cs-hero-btns">
+          <Link to="/register" className="cs-btn-dark">Get Started Free →</Link>
+          <Link to="/login" className="cs-btn-outline-white">Sign In</Link>
         </div>
       </section>
 
       {/* ─── Features ───────────────────────────────────────────────── */}
-      <section className="features-section">
-        <div className="text-center">
-          <h2>Everything you need, nothing you don't</h2>
-          <p style={{ marginTop: '8px' }}>Built for people who just want to split bills without the drama.</p>
-        </div>
-        <div className="features-grid">
+      <section className="cs-section" id="features">
+        <h2 className="cs-section-title">Why Choose SplitEase?</h2>
+        <p className="cs-section-sub">
+          Built for roommates, travelers, couples, and friends who want to manage
+          shared expenses effortlessly.
+        </p>
+        <div className="cs-features-grid">
           {features.map((f) => (
-            <div className="feature-card" key={f.title}>
-              <div className="feature-icon">{f.icon}</div>
+            <div className="cs-feature-card" key={f.title}>
+              <div className="cs-feature-icon"><f.Icon /></div>
               <h3>{f.title}</h3>
-              <p style={{ marginTop: '6px', fontSize: '0.9rem' }}>{f.desc}</p>
+              <p>{f.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ─── CTA ────────────────────────────────────────────────────── */}
-      <section style={{ textAlign: 'center', padding: '60px 24px' }}>
-        <h2>Ready to stop chasing payments?</h2>
-        <p style={{ marginTop: '8px', marginBottom: '28px' }}>
-          Join thousands of friend groups using Splitly.
-        </p>
-        <Link to="/register" className="btn btn-primary btn-lg">Create Your First Group →</Link>
+      {/* ─── How It Works ────────────────────────────────────────────── */}
+      <section className="cs-section cs-section-gray" id="how">
+        <h2 className="cs-section-title">How It Works</h2>
+        <div className="cs-steps-grid">
+          {steps.map((s) => (
+            <div className="cs-step" key={s.n}>
+              <div className="cs-step-num">{s.n}</div>
+              <h3>{s.title}</h3>
+              <p>{s.desc}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
-      <footer className="landing-footer">
-        © {new Date().getFullYear()} Splitly. Made with ❤️ using the MERN Stack.
+      {/* ─── CTA Banner ─────────────────────────────────────────────── */}
+      <section className="cs-cta-wrap" id="about">
+        <div className="cs-cta-card">
+          <h2>Ready to Split Fairly?</h2>
+          <p>
+            Join thousands of friend groups already using SplitEase to stay
+            stress-free with shared expenses.
+          </p>
+          <Link to="/register" className="cs-btn-dark">Start for Free →</Link>
+        </div>
+      </section>
+
+      {/* ─── Footer ─────────────────────────────────────────────────── */}
+      <footer className="cs-footer">
+        <div className="cs-logo" style={{ fontSize: '1rem' }}>
+          <div className="cs-logo-hex" style={{ width: '24px', height: '24px', background: '#2563EB', border: '2px solid #2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', clipPath: 'none', borderRadius: '7px' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+              <circle cx="8" cy="12" r="4"/><circle cx="16" cy="12" r="4"/>
+            </svg>
+          </div>
+          SplitEase
+        </div>
+        <span>© {new Date().getFullYear()} SplitEase. Built with the MERN Stack.</span>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <Link to="/login">Sign In</Link>
+          <Link to="/register">Register</Link>
+        </div>
       </footer>
     </div>
   );
