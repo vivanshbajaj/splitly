@@ -8,9 +8,9 @@
 * Create and manage expense-sharing groups
 * Add and track shared expenses within groups
 * Automatic equal expense distribution among group members
-* Real-time balance calculations showing outstanding debts
+* Real-time balance calculations with an intelligent "Simplify Debts" engine using the Minimum Cash Flow algorithm to minimize total transactions
 * Settlement recording to clear balances
-* Responsive dark-themed user interface
+* Responsive modern user interface
 
 ## Technology Stack
 
@@ -120,6 +120,7 @@ splitly/
 * MongoDB schema design using Mongoose
 * Responsive React frontend
 * Real-time balance and settlement calculations
+* Graph-based debt optimization using the Minimum Cash Flow algorithm
 
 ## Future Enhancements
 

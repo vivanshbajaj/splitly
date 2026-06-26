@@ -35,10 +35,12 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-card">
         {/* Logo */}
-        <div className="auth-logo">
-          <div className="logo-icon">💰</div>
-          Split<span>ly</span>
-        </div>
+        <Link to="/" style={{ textDecoration: 'none' }}>
+          <div className="auth-logo">
+            <div className="logo-icon">💰</div>
+            Split<span>ly</span>
+          </div>
+        </Link>
 
         <h2 className="auth-title">Welcome back</h2>
         <p className="auth-subtitle">Log in to see your expenses and balances</p>

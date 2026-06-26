@@ -94,7 +94,12 @@ router.get('/me', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password'); // exclude password
     if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json(user);
+    
+    // Explicitly add "id" field (in addition to Mongoose's _id) to prevent frontend mismatch
+    const userObj = user.toObject();
+    userObj.id = userObj._id;
+    
+    res.json(userObj);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }

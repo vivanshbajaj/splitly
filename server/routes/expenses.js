@@ -48,13 +48,23 @@ router.post('/', protect, async (req, res) => {
       return res.status(403).json({ message: 'You are not a member of this group' });
     }
 
-    // Split equally: divide total amount by number of members
+    // Split equally but ensure total perfectly matches (fix penny drift)
     const perPersonAmount = parseFloat((amount / group.members.length).toFixed(2));
-
-    const splits = group.members.map((member) => ({
-      user: member._id,
-      amount: perPersonAmount,
-    }));
+    const splits = [];
+    let allocated = 0;
+    
+    for (let i = 0; i < group.members.length; i++) {
+      let splitAmount = perPersonAmount;
+      if (i === group.members.length - 1) {
+        // The last person takes whatever is left to ensure exact total
+        splitAmount = parseFloat((amount - allocated).toFixed(2));
+      }
+      splits.push({
+        user: group.members[i]._id,
+        amount: splitAmount,
+      });
+      allocated += splitAmount;
+    }
 
     const expense = await Expense.create({
       group: groupId,

@@ -41,10 +41,12 @@ export default function Register() {
     <div className="auth-page">
       <div className="auth-card">
         {/* Logo */}
-        <div className="auth-logo">
-          <div className="logo-icon">💰</div>
-          Split<span>ly</span>
-        </div>
+        <Link to="/" style={{ textDecoration: 'none' }}>
+          <div className="auth-logo">
+            <div className="logo-icon">💰</div>
+            Split<span>ly</span>
+          </div>
+        </Link>
 
         <h2 className="auth-title">Create your account</h2>
         <p className="auth-subtitle">Start splitting bills with friends in seconds</p>

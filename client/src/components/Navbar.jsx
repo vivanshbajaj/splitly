@@ -7,9 +7,13 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       {/* Logo */}
-      <Link to="/dashboard" className="navbar-logo">
-        <div className="logo-icon">💰</div>
-        Split<span>ly</span>
+      <Link to="/" className="navbar-logo">
+        <div className="logo-icon" style={{ background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+            <circle cx="8" cy="12" r="4"/><circle cx="16" cy="12" r="4"/>
+          </svg>
+        </div>
+        <div>Split<span>ly</span></div>
       </Link>
 
       {/* Right side */}

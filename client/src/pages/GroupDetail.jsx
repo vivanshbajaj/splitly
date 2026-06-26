@@ -4,11 +4,27 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import AddExpenseModal from '../components/AddExpenseModal';
+import SettleModal from '../components/SettleModal';
 
 const CATEGORY_ICONS = {
   food: '🍕', travel: '✈️', rent: '🏠',
   entertainment: '🎬', shopping: '🛍️', other: '📦',
 };
+
+// ─── Formatting Helper ────────────────────────────────────────────────────────
+function formatAmount(amount) {
+  // If the amount is within 5 pennies of a whole number, snap it to the whole number
+  // This aggressively hides floating point drift bugs from older database entries
+  let rounded = Math.round(amount * 100) / 100;
+  if (Math.abs(Math.round(amount) - amount) <= 0.05) {
+    rounded = Math.round(amount);
+  }
+
+  if (Number.isInteger(rounded)) {
+    return rounded.toLocaleString('en-IN');
+  }
+  return rounded.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 // ─── Balance Calculation (the core logic of the app) ────────────────────────
 // Returns an object: { userId: netAmount }
@@ -50,6 +66,70 @@ function calculateBalances(expenses, settlements, currentUserId) {
   return balances;
 }
 
+// ─── Simplify Debts Logic (Minimum Cash Flow) ────────────────────────────────
+function calculateGlobalBalances(expenses, settlements) {
+  const netBalances = {}; 
+  expenses.forEach(exp => {
+    const payerId = exp.paidBy._id;
+    netBalances[payerId] = (netBalances[payerId] || 0) + exp.amount;
+    exp.splits.forEach(split => {
+      netBalances[split.user._id] = (netBalances[split.user._id] || 0) - split.amount;
+    });
+  });
+  settlements.forEach(s => {
+    netBalances[s.from._id] = (netBalances[s.from._id] || 0) + s.amount;
+    netBalances[s.to._id] = (netBalances[s.to._id] || 0) - s.amount;
+  });
+  return netBalances;
+}
+
+function minimizeCashFlow(netBalances) {
+  const debtors = [];
+  const creditors = [];
+
+  for (const [id, balance] of Object.entries(netBalances)) {
+    if (balance < -0.01) debtors.push({ id, amount: Math.abs(balance) });
+    else if (balance > 0.01) creditors.push({ id, amount: balance });
+  }
+
+  debtors.sort((a, b) => b.amount - a.amount);
+  creditors.sort((a, b) => b.amount - a.amount);
+
+  const transactions = [];
+  let i = 0, j = 0;
+
+  while (i < debtors.length && j < creditors.length) {
+    const debtor = debtors[i];
+    const creditor = creditors[j];
+    const settledAmount = Math.min(debtor.amount, creditor.amount);
+
+    transactions.push({
+      from: debtor.id,
+      to: creditor.id,
+      amount: settledAmount
+    });
+
+    debtor.amount -= settledAmount;
+    creditor.amount -= settledAmount;
+
+    if (Math.abs(debtor.amount) < 0.01) i++;
+    if (Math.abs(creditor.amount) < 0.01) j++;
+  }
+  return transactions;
+}
+
+function getSimplifiedBalancesForUser(transactions, currentUserId) {
+  const balances = {};
+  transactions.forEach(t => {
+    if (t.from === currentUserId) {
+      balances[t.to] = (balances[t.to] || 0) - t.amount;
+    } else if (t.to === currentUserId) {
+      balances[t.from] = (balances[t.from] || 0) + t.amount;
+    }
+  });
+  return balances;
+}
+
 export default function GroupDetail() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -60,7 +140,9 @@ export default function GroupDetail() {
   const [settlements, setSettlements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [settleData, setSettleData] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [simplifyDebts, setSimplifyDebts] = useState(true);
 
   useEffect(() => {
     fetchAll();
@@ -102,16 +184,21 @@ export default function GroupDetail() {
     }
   };
 
-  const handleSettleUp = async (toUserId, amount) => {
-    if (!window.confirm(`Confirm settlement of ₹${amount.toFixed(2)}?`)) return;
+  const handleSettleUp = (toUserId, maxAmount, memberName) => {
+    setSettleData({ toUserId, maxAmount, memberName });
+  };
+
+  const submitSettleUp = async (amountToSettle) => {
+    if (!settleData) return;
     try {
       const res = await api.post('/settlements', {
         groupId: id,
-        toUserId,
-        amount,
+        toUserId: settleData.toUserId,
+        amount: amountToSettle,
         method: 'cash',
       });
       setSettlements([res.data, ...settlements]);
+      setSettleData(null);
     } catch (err) {
       alert('Failed to record settlement');
     }
@@ -129,10 +216,20 @@ export default function GroupDetail() {
 
   if (loading) return <><Navbar /><div className="spinner" /></>;
 
-  const balances = calculateBalances(expenses, settlements, user.id);
+  const currentUserId = user.id || user._id;
+
+  let balances = {};
+  if (simplifyDebts) {
+    const globalBalances = calculateGlobalBalances(expenses, settlements);
+    const optimizedTransactions = minimizeCashFlow(globalBalances);
+    balances = getSimplifiedBalancesForUser(optimizedTransactions, currentUserId);
+  } else {
+    balances = calculateBalances(expenses, settlements, currentUserId);
+  }
+
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
   const mySpend = expenses
-    .filter((e) => e.paidBy._id === user.id)
+    .filter((e) => e.paidBy._id === currentUserId)
     .reduce((sum, e) => sum + e.amount, 0);
 
   // What I owe overall vs what I'm owed
@@ -162,7 +259,7 @@ export default function GroupDetail() {
               <button className="btn btn-primary" onClick={() => setShowAddExpense(true)}>
                 + Add Expense
               </button>
-              {group.createdBy._id === user.id && (
+              {group.createdBy._id === currentUserId && (
                 <button className="btn btn-danger btn-sm" onClick={handleDeleteGroup}>
                   Delete Group
                 </button>
@@ -175,19 +272,19 @@ export default function GroupDetail() {
         <div className="stats-row" style={{ marginBottom: '28px' }}>
           <div className="stat-card">
             <div className="stat-label">Total Spent</div>
-            <div className="stat-value neutral">₹{totalExpenses.toFixed(0)}</div>
+            <div className="stat-value neutral">₹{formatAmount(totalExpenses)}</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">You Paid</div>
-            <div className="stat-value neutral">₹{mySpend.toFixed(0)}</div>
+            <div className="stat-value neutral">₹{formatAmount(mySpend)}</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">You Are Owed</div>
-            <div className="stat-value positive">₹{totalOwed.toFixed(0)}</div>
+            <div className="stat-value positive">₹{formatAmount(totalOwed)}</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">You Owe</div>
-            <div className="stat-value negative">₹{totalOwing.toFixed(0)}</div>
+            <div className="stat-value negative">₹{formatAmount(totalOwing)}</div>
           </div>
         </div>
 
@@ -209,8 +306,8 @@ export default function GroupDetail() {
                 </div>
               ) : (
                 expenses.map((expense) => {
-                  const myShare = expense.splits.find((s) => s.user._id === user.id);
-                  const iPaid = expense.paidBy._id === user.id;
+                  const myShare = expense.splits.find((s) => s.user._id === currentUserId);
+                  const iPaid = expense.paidBy._id === currentUserId;
                   return (
                     <div className="expense-item" key={expense._id}>
                       <div className="expense-cat-icon">
@@ -220,14 +317,14 @@ export default function GroupDetail() {
                         <div className="expense-title">{expense.title}</div>
                         <div className="expense-meta">
                           Paid by {iPaid ? 'you' : expense.paidBy.name} ·{' '}
-                          {new Date(expense.createdAt).toLocaleDateString()}
+                          {new Date(expense.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                         </div>
                       </div>
                       <div>
-                        <div className="expense-amount">₹{expense.amount.toFixed(0)}</div>
+                        <div className="expense-amount">₹{formatAmount(expense.amount)}</div>
                         {myShare && (
                           <div className="expense-share">
-                            {iPaid ? 'you paid' : `your share: ₹${myShare.amount.toFixed(0)}`}
+                            {iPaid ? 'you paid' : `your share: ₹${formatAmount(myShare.amount)}`}
                           </div>
                         )}
                       </div>
@@ -260,7 +357,7 @@ export default function GroupDetail() {
                     {m.name.charAt(0).toUpperCase()}
                   </div>
                   <span className="text-sm">
-                    {m.name} {m._id === user.id && <span className="text-faint">(you)</span>}
+                    {m.name} {m._id === currentUserId && <span className="text-faint">(you)</span>}
                   </span>
                   {m._id === group.createdBy._id && (
                     <span className="badge badge-primary text-xs ml-auto">admin</span>
@@ -271,7 +368,19 @@ export default function GroupDetail() {
 
             {/* Balances */}
             <div className="card">
-              <h4 style={{ marginBottom: '12px' }}>Balances</h4>
+              <div className="flex items-center justify-between" style={{ marginBottom: '16px' }}>
+                <h4 style={{ margin: 0 }}>Balances</h4>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--muted)' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={simplifyDebts} 
+                    onChange={(e) => setSimplifyDebts(e.target.checked)} 
+                    style={{ cursor: 'pointer' }}
+                  />
+                  Simplify Debts
+                </label>
+              </div>
+              
               {Object.keys(balances).filter((uid) => Math.abs(balances[uid]) > 0.01).length === 0 ? (
                 <div className="text-center" style={{ padding: '16px' }}>
                   <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>🎉</div>
@@ -299,13 +408,13 @@ export default function GroupDetail() {
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <div className={`balance-amount ${isPositive ? 'balance-positive' : 'balance-negative'}`}>
-                            ₹{Math.abs(amount).toFixed(0)}
+                            ₹{formatAmount(Math.abs(amount))}
                           </div>
                           {!isPositive && (
                             <button
                               className="btn btn-sm btn-outline settle-btn"
                               style={{ marginTop: '4px' }}
-                              onClick={() => handleSettleUp(uid, Math.abs(amount))}
+                              onClick={() => handleSettleUp(uid, Math.abs(amount), member.name)}
                             >
                               Settle Up
                             </button>
@@ -322,11 +431,16 @@ export default function GroupDetail() {
               <div className="card">
                 <h4 style={{ marginBottom: '12px' }}>Settlement History</h4>
                 {settlements.slice(0, 5).map((s) => (
-                  <div key={s._id} className="flex items-center justify-between" style={{ padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-                    <span className="text-sm text-muted">
-                      {s.from._id === user.id ? 'You' : s.from.name} → {s.to._id === user.id ? 'You' : s.to.name}
-                    </span>
-                    <span className="text-sm font-semibold text-accent">₹{s.amount}</span>
+                  <div key={s._id} className="flex items-center justify-between" style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                    <div>
+                      <div className="text-sm">
+                        {s.from._id === currentUserId ? 'You' : s.from.name} → {s.to._id === currentUserId ? 'You' : s.to.name}
+                      </div>
+                      <div className="text-xs text-muted" style={{ marginTop: '2px' }}>
+                        {new Date(s.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                      </div>
+                    </div>
+                    <span className="text-sm font-semibold text-accent">₹{formatAmount(s.amount)}</span>
                   </div>
                 ))}
               </div>
@@ -340,6 +454,15 @@ export default function GroupDetail() {
           groupId={id}
           onClose={() => setShowAddExpense(false)}
           onAdded={handleExpenseAdded}
+        />
+      )}
+
+      {settleData && (
+        <SettleModal
+          maxAmount={settleData.maxAmount}
+          memberName={settleData.memberName}
+          onClose={() => setSettleData(null)}
+          onSettle={submitSettleUp}
         />
       )}
     </>
